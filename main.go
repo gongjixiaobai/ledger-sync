@@ -5,6 +5,8 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"github.com/satori/go.uuid"
 	"github.com/xuri/excelize/v2"
@@ -44,7 +46,7 @@ func main() {
 
 	for _, user := range ledgerUsers {
 		fmt.Println(*user)
-		authUsers = append(authUsers, &model.AuthUser{Id: uuid.NewV4().String(), UserName: user.UserName, PassWord: user.PassWord, RealUserName: user.RealUserName, PhoneNo: user.PhoneNumber, OrganizationId: user.OrgName})
+		authUsers = append(authUsers, &model.AuthUser{Id: uuid.NewV4().String(), UserName: user.UserName, PassWord: MD5V(user.PassWord, user.UserName, 2), RealUserName: user.RealUserName, PhoneNo: user.PhoneNumber, OrganizationId: user.OrgName})
 	}
 
 	for _, user := range authUsers {
@@ -57,8 +59,23 @@ func main() {
 	}})
 	user := model.AuthUser{}
 	db.First(&user)
-	fmt.Println(user)
 
-	// TODO 密码加密
+	// TODO 添加角色与组织机构id
+}
 
+// MD5V 密码加密
+func MD5V(str string, salt string, iteration int) string {
+	b := []byte(str)
+	s := []byte(salt)
+	h := md5.New()
+	h.Write(s) // 先传入盐值
+	h.Write(b)
+	var res []byte
+	res = h.Sum(nil)
+	for i := 0; i < iteration-1; i++ {
+		h.Reset()
+		h.Write(res)
+		res = h.Sum(nil)
+	}
+	return hex.EncodeToString(res)
 }
